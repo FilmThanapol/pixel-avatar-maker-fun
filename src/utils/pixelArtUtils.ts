@@ -37,25 +37,43 @@ export const loadFromLocalStorage = (defaultSize: number): { gridData: string[][
   return { gridData: createEmptyGrid(defaultSize), size: defaultSize };
 };
 
-export const exportToPNG = (gridData: string[][], size: number, filename: string = 'pixel-avatar') => {
+export interface ExportOptions {
+  includeGrid: boolean;
+  scale: number;
+  backgroundColor: string;
+  filename: string;
+}
+
+export const exportToPNG = (
+  gridData: string[][],
+  size: number,
+  options: Partial<ExportOptions> = {}
+) => {
+  const {
+    includeGrid = false,
+    scale = Math.max(20, 640 / size),
+    backgroundColor = '#FFFFFF',
+    filename = 'pixel-avatar'
+  } = options;
+
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  
+
   if (!ctx) {
     console.error('Failed to get canvas context');
     return;
   }
 
-  // Set canvas size (multiply by scale factor for better quality)
-  const scale = Math.max(20, 640 / size); // Adaptive scale based on grid size
-  canvas.width = size * scale;
-  canvas.height = size * scale;
+  // Set canvas size with high quality scaling
+  const finalScale = Math.max(scale, size >= 64 ? 8 : 16);
+  canvas.width = size * finalScale;
+  canvas.height = size * finalScale;
 
   // Disable image smoothing for crisp pixels
   ctx.imageSmoothingEnabled = false;
 
-  // Fill background with white
-  ctx.fillStyle = '#FFFFFF';
+  // Fill background
+  ctx.fillStyle = backgroundColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Draw each pixel
@@ -64,14 +82,36 @@ export const exportToPNG = (gridData: string[][], size: number, filename: string
       if (pixel) {
         ctx.fillStyle = pixel;
         ctx.fillRect(
-          colIndex * scale,
-          rowIndex * scale,
-          scale,
-          scale
+          colIndex * finalScale,
+          rowIndex * finalScale,
+          finalScale,
+          finalScale
         );
       }
     });
   });
+
+  // Draw grid lines if requested
+  if (includeGrid) {
+    ctx.strokeStyle = '#E5E7EB';
+    ctx.lineWidth = Math.max(1, finalScale / 20);
+
+    // Vertical lines
+    for (let i = 0; i <= size; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * finalScale, 0);
+      ctx.lineTo(i * finalScale, canvas.height);
+      ctx.stroke();
+    }
+
+    // Horizontal lines
+    for (let i = 0; i <= size; i++) {
+      ctx.beginPath();
+      ctx.moveTo(0, i * finalScale);
+      ctx.lineTo(canvas.width, i * finalScale);
+      ctx.stroke();
+    }
+  }
 
   // Create download link
   canvas.toBlob((blob) => {
