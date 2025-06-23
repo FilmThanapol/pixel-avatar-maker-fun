@@ -56,8 +56,8 @@ const PixelGrid: React.FC<PixelGridProps> = ({
     if (!isDrawing) return;
     
     const touch = e.touches[0];
-    const element = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (element && element.dataset.row && element.dataset.col) {
+    const element = document.elementFromPoint(touch.clientX, touch.clientY) as HTMLElement;
+    if (element && element.dataset && element.dataset.row && element.dataset.col) {
       const row = parseInt(element.dataset.row);
       const col = parseInt(element.dataset.col);
       onPixelClick(row, col);

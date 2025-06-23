@@ -3,31 +3,38 @@ export const createEmptyGrid = (size: number): string[][] => {
   return Array(size).fill(null).map(() => Array(size).fill(''));
 };
 
-export const saveToLocalStorage = (gridData: string[][]) => {
+export const saveToLocalStorage = (gridData: string[][], size: number) => {
   try {
-    localStorage.setItem('pixelArtGrid', JSON.stringify(gridData));
+    const saveData = {
+      gridData,
+      size,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('pixelArtGrid', JSON.stringify(saveData));
     console.log('Grid saved to localStorage');
   } catch (error) {
     console.error('Failed to save to localStorage:', error);
   }
 };
 
-export const loadFromLocalStorage = (size: number): string[][] => {
+export const loadFromLocalStorage = (defaultSize: number): { gridData: string[][]; size: number } => {
   try {
     const saved = localStorage.getItem('pixelArtGrid');
     if (saved) {
       const parsed = JSON.parse(saved);
       // Validate the loaded data
-      if (Array.isArray(parsed) && parsed.length === size && 
-          parsed.every(row => Array.isArray(row) && row.length === size)) {
+      if (parsed.gridData && Array.isArray(parsed.gridData) && 
+          parsed.size && typeof parsed.size === 'number' &&
+          parsed.gridData.length === parsed.size && 
+          parsed.gridData.every((row: any) => Array.isArray(row) && row.length === parsed.size)) {
         console.log('Grid loaded from localStorage');
-        return parsed;
+        return { gridData: parsed.gridData, size: parsed.size };
       }
     }
   } catch (error) {
     console.error('Failed to load from localStorage:', error);
   }
-  return createEmptyGrid(size);
+  return { gridData: createEmptyGrid(defaultSize), size: defaultSize };
 };
 
 export const exportToPNG = (gridData: string[][], size: number, filename: string = 'pixel-avatar') => {
@@ -40,7 +47,7 @@ export const exportToPNG = (gridData: string[][], size: number, filename: string
   }
 
   // Set canvas size (multiply by scale factor for better quality)
-  const scale = 20; // Each pixel will be 20x20 in the exported image
+  const scale = Math.max(20, 640 / size); // Adaptive scale based on grid size
   canvas.width = size * scale;
   canvas.height = size * scale;
 
