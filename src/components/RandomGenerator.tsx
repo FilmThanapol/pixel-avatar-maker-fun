@@ -1,6 +1,7 @@
-import React from 'react';
-import { Sparkles, Mountain, Cat, Sunset, Building, TreePine } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, Mountain, Cat, Sunset, Building, TreePine, Camera, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { generatePixelArtFromRandomImage } from '../utils/imageToPixelArt';
 
 interface RandomGeneratorProps {
   gridSize: number;
@@ -8,6 +9,11 @@ interface RandomGeneratorProps {
 }
 
 const RandomGenerator: React.FC<RandomGeneratorProps> = ({ gridSize, onGenerateGrid }) => {
+  const [isGeneratingFromPhoto, setIsGeneratingFromPhoto] = useState(false);
+  const [photoOptions, setPhotoOptions] = useState({
+    cropToFit: true,
+    colorCount: Math.min(16, Math.max(8, Math.floor(gridSize / 4)))
+  });
 
   // Scene generation algorithms
   const generateMountainScene = (): string[][] => {
@@ -318,6 +324,30 @@ const RandomGenerator: React.FC<RandomGeneratorProps> = ({ gridSize, onGenerateG
     onGenerateGrid(generatedGrid);
   };
 
+  const generateFromRandomPhoto = async () => {
+    setIsGeneratingFromPhoto(true);
+    try {
+      const pixelArt = await generatePixelArtFromRandomImage(gridSize, {
+        colorCount: photoOptions.colorCount,
+        maintainAspectRatio: true,
+        cropToFit: photoOptions.cropToFit
+      });
+      onGenerateGrid(pixelArt);
+    } catch (error) {
+      console.error('Failed to generate pixel art from photo:', error);
+
+      // Show user-friendly error and fallback to scene generation
+      if (error instanceof Error && error.message.includes('Failed to load image')) {
+        console.warn('Lorem Picsum unavailable, falling back to scene generation');
+      }
+
+      // Fallback to regular scene generation
+      generateRandomScene();
+    } finally {
+      setIsGeneratingFromPhoto(false);
+    }
+  };
+
   return (
     <div className="bg-white p-4 rounded-lg shadow-lg border-2 border-gray-300">
       <h3 className="text-lg font-bold mb-3 text-gray-800 text-center flex items-center justify-center gap-2">
@@ -326,14 +356,29 @@ const RandomGenerator: React.FC<RandomGeneratorProps> = ({ gridSize, onGenerateG
       </h3>
 
       <div className="space-y-4">
-        {/* Main Generate Button */}
-        <Button
-          onClick={generateRandomScene}
-          className="w-full flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3"
-        >
-          <Sparkles className="w-5 h-5" />
-          Generate Random Scene
-        </Button>
+        {/* Main Generate Buttons */}
+        <div className="grid grid-cols-1 gap-2">
+          <Button
+            onClick={generateRandomScene}
+            className="w-full flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3"
+          >
+            <Sparkles className="w-5 h-5" />
+            Generate Scene
+          </Button>
+
+          <Button
+            onClick={generateFromRandomPhoto}
+            disabled={isGeneratingFromPhoto}
+            className="w-full flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold py-3"
+          >
+            {isGeneratingFromPhoto ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Camera className="w-5 h-5" />
+            )}
+            {isGeneratingFromPhoto ? 'Converting Photo...' : 'Generate from Photo'}
+          </Button>
+        </div>
 
         {/* Scene Preview Grid */}
         <div className="grid grid-cols-2 gap-2">
@@ -354,9 +399,16 @@ const RandomGenerator: React.FC<RandomGeneratorProps> = ({ gridSize, onGenerateG
         </div>
 
         {/* Info */}
-        <div className="text-xs text-gray-600 text-center p-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded border border-purple-200">
+        <div className="text-xs text-gray-600 text-center p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded border border-purple-200">
           <Sparkles className="w-3 h-3 inline mr-1" />
-          Generate beautiful pixel art scenes automatically! Each scene is optimized for your current grid size.
+          <strong>Two ways to create:</strong>
+          <div className="mt-2 space-y-1">
+            <div>🎨 <strong>Scenes:</strong> Hand-crafted pixel art landscapes</div>
+            <div>📸 <strong>Photos:</strong> Real images converted to pixel art</div>
+          </div>
+          <div className="mt-2 text-xs text-gray-500">
+            Photos are fetched from Lorem Picsum and automatically converted to match your grid size.
+          </div>
         </div>
       </div>
     </div>

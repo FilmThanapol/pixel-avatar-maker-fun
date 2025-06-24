@@ -141,9 +141,20 @@ const Index = () => {
   const handleRandomGenerate = (newGrid: string[][]) => {
     setGridData(newGrid);
     playRandomGenerate();
+
+    // Check if this looks like a photo conversion (more varied colors) or a scene
+    const uniqueColors = new Set();
+    newGrid.forEach(row => row.forEach(cell => {
+      if (cell) uniqueColors.add(cell);
+    }));
+
+    const isPhotoConversion = uniqueColors.size > 8;
+
     toast({
-      title: "Scene generated!",
-      description: "A beautiful pixel art scene has been created.",
+      title: isPhotoConversion ? "Photo converted!" : "Scene generated!",
+      description: isPhotoConversion
+        ? "Random photo converted to pixel art successfully."
+        : "A beautiful pixel art scene has been created.",
     });
   };
 
