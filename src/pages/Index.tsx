@@ -258,7 +258,7 @@ const Index = () => {
               </Button>
             </div>
           </aside>
-        </div>
+        </main>
 
         {/* Footer */}
         <div className="text-center mt-8 text-white/80">
